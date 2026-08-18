@@ -1,0 +1,56 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "obsify"
+version = "0.1.0"
+description = "Local, privacy-preserving PII toolkit over MCP — the model reasons on shape, deterministic local code touches substance, only masked results return."
+readme = "README.md"
+license = { text = "MIT" }
+requires-python = ">=3.11"
+keywords = ["mcp", "pii", "privacy", "presidio", "redaction", "compute-to-data", "llm"]
+authors = [{ name = "obsify contributors" }]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Intended Audience :: Developers",
+    "License :: OSI Approved :: MIT License",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Topic :: Security",
+]
+
+# Core runtime. The spaCy English model (en_core_web_lg, ~560 MB) is NOT a PyPI
+# dependency — install it separately (see README): `python -m spacy download en_core_web_lg`.
+dependencies = [
+    "mcp>=2.0.0",
+    "presidio-analyzer>=2.2.0",
+    "presidio-anonymizer>=2.2.0",
+    "spacy>=3.8,<4",
+    "openpyxl>=3.1",
+    "pdfplumber>=0.11",
+    "python-docx>=1.1",
+]
+
+[project.optional-dependencies]
+# Complex-table PDF fallback (needs Ghostscript installed on the system too).
+tables = ["camelot-py>=1.0", "ghostscript>=0.7"]
+# Convenience libraries commonly used inside run_on_real analysis code.
+compute = ["pandas>=2.2"]
+# Synthetic corpus generator (obsify.make_corpus) — renders sample PDFs.
+demo = ["reportlab>=4.0"]
+# Scored evaluation harness under eval/ (labelled corpus generator + scorer).
+eval = ["faker>=30", "reportlab>=4.0"]
+dev = ["pytest>=8", "reportlab>=4.0", "faker>=30"]
+
+[project.scripts]
+obsify = "obsify.init:main"            # scaffold the routing layer into a project
+obsify-mcp = "obsify.mcp_server:main"  # run the MCP server over stdio
+
+[project.urls]
+Homepage = "https://github.com/Formative-Sum41/obsify"
+Documentation = "https://github.com/Formative-Sum41/obsify/blob/main/docs/obsify_routing.md"
+Issues = "https://github.com/Formative-Sum41/obsify/issues"
+
+[tool.hatch.build.targets.wheel]
+packages = ["obsify"]

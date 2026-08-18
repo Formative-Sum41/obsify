@@ -1,0 +1,175 @@
+"""obsify — a local, privacy-preserving MCP server for working with sensitive data.
+
+Design principle (why this is safe to hand any AI client): MCP tool *arguments*
+come from the model and *results* go back into the model's context. So the
+privacy-preserving tools take a PATH to data the model cannot see, touch the real
+data LOCALLY, and return only SHAPE — types, locations and counts, never values.
+The model reasons over shape; substance never enters its context and never leaves
+to a provider. Utilities (redact_text, verify_value_free) round out the toolkit.
+
+Advisory, not enforcing: it makes the capability available; the host decides how
+to use it. Runs locally over stdio. Makes no network calls when processing your
+data; the only network use is a one-time NER-model download on first run (a public
+model, no user data sent), which OBSIFY_AUTO_DOWNLOAD=0 disables.
+
+Tools:
+  scan_pii(path)            -> PII types + locations + counts (NO values)   [shape]
+  redact_text(text)         -> the text with PII masked to [TYPE] tokens    [utility]
+  verify_value_free(text,   -> fail-closed check that `text` contains none
+                    terms)     of `terms` (or their suffix/variant forms)   [utility]
+
+Run:  python -m obsify.mcp_server         (stdio, for MCP clients)
+"""
+
+from __future__ import annotations
+
+from collections import Counter
+from dataclasses import replace
+from pathlib import Path
+
+import obsify  # noqa: F401  (Windows runtime bootstrap before presidio import)
+from mcp.server.mcpserver import MCPServer
+
+from obsify.config import DEFAULT_CONFIG
+from obsify.detection import _post_recognize_filter
+from obsify.extraction import SUPPORTED_SUFFIXES, extract_document
+from obsify.redaction import redaction_self_check
+
+mcp = MCPServer(
+    name="obsify",
+    title="obsify — privacy-preserving PII toolkit",
+    description="Local, deterministic PII detection, redaction and verification. "
+                "Substance stays local; only shape is returned.",
+    instructions="Use scan_pii on a file/folder PATH to learn what PII is where "
+                 "WITHOUT its values. Use redact_text to mask a string. Use "
+                 "verify_value_free to confirm a string leaks none of a value list.",
+)
+
+# The spaCy model + analyzer are expensive; build once, lazily, and reuse.
+_ANALYZER = None
+# Detect posture: enable the precision suppressors so numeric ledgers do not flood.
+_DETECT_CFG = replace(DEFAULT_CONFIG, suppress_letterless_detections=True,
+                      suppress_ner_with_digits=True)
+_SUFFIXES = SUPPORTED_SUFFIXES  # pdf, xlsx/xlsm, docx — single source of truth
+
+
+def _analyzer():
+    global _ANALYZER
+    if _ANALYZER is None:
+        from obsify.nlp import build_analyzers
+        _, custom = build_analyzers(_DETECT_CFG)
+        _ANALYZER = custom
+    return _ANALYZER
+
+
+def _detect(text: str):
+    """Analyze one text with the custom recognizers + precision filter."""
+    entities = list(_DETECT_CFG.entities_of_interest)
+    results = _analyzer().analyze(text=text, language="en", entities=entities,
+                                  score_threshold=_DETECT_CFG.presidio_score_threshold)
+    return _post_recognize_filter(results, text, _DETECT_CFG)
+
+
+@mcp.tool()
+def scan_pii(path: str, max_cells: int = 20000) -> dict:
+    """Scan a file or folder for PII and return TYPES + LOCATIONS + COUNTS only —
+    never the detected values. Safe to surface to an LLM: it learns what PII exists
+    and where, without the substance entering context. Recurses into subfolders;
+    skips unreadable files and caps very large sheets, reporting both as notes."""
+    root = Path(path)
+    files = [root] if root.is_file() else sorted(
+        p for p in root.rglob("*") if p.suffix.lower() in _SUFFIXES)
+    notes: list[str] = []
+    by_type: Counter = Counter()
+    findings: list[dict] = []
+    low_coverage: list[dict] = []
+    read_ok = 0
+    for f in files:
+        segs, cov = extract_document(str(f), notes)
+        if not segs and not cov:
+            continue
+        read_ok += 1
+        if len(segs) > max_cells:
+            notes.append(f"{f.name}: {len(segs)} segments > max_cells {max_cells}; "
+                         f"scanned first {max_cells} (UNSCANNED REMAINDER — blind spot)")
+            segs = segs[:max_cells]
+        low_coverage += [{"document": c.document, "page": c.page} for c in cov if c.flag]
+        for seg in segs:
+            for r in _detect(seg.text):
+                by_type[r.entity_type] += 1
+                findings.append({"type": r.entity_type, "document": seg.document,
+                                 "location": seg.locator})  # NO value
+    return {
+        "files_found": len(files), "files_read": read_ok,
+        "counts_by_type": dict(sorted(by_type.items())),
+        "findings": findings,           # type + location only
+        "low_coverage_pages": low_coverage,
+        "notes": notes,                 # skipped/oversized files (blind spots)
+    }
+
+
+@mcp.tool()
+def redact_text(text: str) -> str:
+    """Return `text` with detected PII replaced by [TYPE] placeholders (e.g.
+    [AU_TFN], [PERSON]). Deterministic; checksum-validated identifiers and
+    context/precision rules apply so bare numbers are not over-masked."""
+    from presidio_anonymizer import AnonymizerEngine
+    results = _detect(text)
+    if not results:
+        return text
+    return AnonymizerEngine().anonymize(text=text, analyzer_results=results).text
+
+
+@mcp.tool()
+def verify_value_free(text: str, terms: list[str]) -> dict:
+    """Fail-closed check that `text` contains NONE of `terms` (nor their
+    suffix-normalized / distinctive-token variants). Returns {"value_free": bool}
+    with zero detail on what matched — for verifying an artifact before it leaves
+    the perimeter."""
+    leak = redaction_self_check(text, list(terms), [])
+    return {"value_free": not leak}
+
+
+@mcp.tool()
+def make_synthetic_twin(path: str, out: str, cap_rows: int = 2000) -> dict:
+    """Generate a SYNTHETIC TWIN of a real Excel workbook at `path`, written to
+    `out`. Schema (sheets, headers, column types, true row counts) is preserved;
+    every data value is freshly FAKED — no real value is copied. Reason and write
+    your analysis code against the twin; then run it on the real file with
+    run_on_real. Returns the schema summary (safe shape)."""
+    from obsify.twin import make_synthetic_twin as _twin
+    return _twin(path, out, cap_rows=cap_rows)
+
+
+_OUTPUT_CAP = 4000
+
+
+@mcp.tool()
+def run_on_real(code: str, data_path: str, timeout: int = 30) -> dict:
+    """COMPUTE-TO-DATA: execute your Python `code` LOCALLY against the real file at
+    `data_path` (bound to the variable DATA_PATH in your code), and return only the
+    PII-masked, size-capped output. The data never enters your context; substance
+    never leaves. **Return AGGREGATES (counts/sums/summaries) via print()** — output
+    masking is best-effort defense-in-depth, NOT a guarantee, so never print raw
+    records or identifiers. Network is disabled and a timeout applies. On error you
+    get the exception type and a masked message."""
+    from obsify.sandbox import execute
+    res = execute(code, data_path, timeout=timeout)
+    out = redact_text(res.stdout)[:_OUTPUT_CAP] if res.stdout.strip() else ""
+    err = redact_text(res.stderr)[:_OUTPUT_CAP] if res.stderr.strip() else ""
+    return {
+        "ok": res.exit_code == 0 and not res.timed_out,
+        "exit_code": res.exit_code,
+        "timed_out": res.timed_out,
+        "output_masked": out,           # PII-masked, truncated
+        "error_masked": err,            # PII-masked traceback/message
+        "truncated": len(res.stdout) > _OUTPUT_CAP or len(res.stderr) > _OUTPUT_CAP,
+    }
+
+
+def main() -> None:
+    mcp.run(transport="stdio")
+
+
+if __name__ == "__main__":
+    main()

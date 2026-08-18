@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Test / tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Editor / OS
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+
+# obsify: never commit real data, twins, or generated artifacts
+# (labelled folders are operator-only; twins are derived from real data)
+/real/
+/corpus/
+/data/
+/twin/
+*.twin.xlsx
+
+# eval harness: generated corpora + cached third-party benchmark data
+/eval_corpus/
+/corpus_demo/
+eval/.cache/

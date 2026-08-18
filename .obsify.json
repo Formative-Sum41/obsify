@@ -1,0 +1,18 @@
+{
+  "$schema": "obsify label manifest — drives the PreToolUse guard (obsify.guard)",
+  "default": "public",
+  "rules": [
+    { "glob": "*/real/*", "label": "restricted" },
+    { "glob": "*/sensitive/*", "label": "confidential" },
+    { "glob": "*/corpus/*", "label": "restricted" },
+    { "glob": "*/ground_truth/*", "label": "restricted" },
+    { "glob": "*/data/*", "label": "confidential" }
+  ],
+  "labels": {
+    "public": "read freely",
+    "confidential": "no direct read — use obsify (scan_pii / run_on_real / make_synthetic_twin)",
+    "restricted": "no direct read, no raw output — obsify with masked/aggregated results only"
+  },
+  "obsify_tools": ["scan_pii", "run_on_real", "make_synthetic_twin"],
+  "twin_dir": "twin"
+}
