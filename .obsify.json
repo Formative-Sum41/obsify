@@ -6,7 +6,8 @@
     { "glob": "*/sensitive/*", "label": "confidential" },
     { "glob": "*/corpus/*", "label": "restricted" },
     { "glob": "*/ground_truth/*", "label": "restricted" },
-    { "glob": "*/data/*", "label": "confidential" }
+    { "glob": "*/data/*", "label": "confidential" },
+    { "glob": "*/.obsify.entities", "label": "restricted" }
   ],
   "labels": {
     "public": "read freely",

@@ -30,6 +30,7 @@ from pathlib import Path
 import obsify  # noqa: F401  (Windows runtime bootstrap before presidio import)
 from mcp.server.mcpserver import MCPServer
 
+from obsify import known_entities
 from obsify.config import DEFAULT_CONFIG
 from obsify.detection import _post_recognize_filter
 from obsify.extraction import SUPPORTED_SUFFIXES, extract_document
@@ -61,20 +62,43 @@ def _analyzer():
     return _ANALYZER
 
 
-def _detect(text: str):
-    """Analyze one text with the custom recognizers + precision filter."""
+def _detect(text: str, matchers=None):
+    """Analyze one text with the custom recognizers + precision filter, then merge in
+    any known-entity matches as KNOWN_ENTITY spans."""
     entities = list(_DETECT_CFG.entities_of_interest)
     results = _analyzer().analyze(text=text, language="en", entities=entities,
                                   score_threshold=_DETECT_CFG.presidio_score_threshold)
-    return _post_recognize_filter(results, text, _DETECT_CFG)
+    results = _post_recognize_filter(results, text, _DETECT_CFG)
+    if matchers:
+        from presidio_analyzer import RecognizerResult
+        for s, e in known_entities.find_known(text, matchers):
+            results.append(RecognizerResult(entity_type=known_entities.ENTITY,
+                                            start=s, end=e, score=1.0))
+    return results
+
+
+def _known_matchers(entities: str | None, near: str | None = None):
+    """Compile matchers from an explicit `.obsify.entities` path, or the auto-discovered
+    one. Returns None when no list is available. The names are read locally and never
+    returned — only their type/location (scan) or a mask (redact) surfaces."""
+    path = entities or known_entities.discover(near)
+    if not path or not Path(path).exists():
+        return None
+    names = known_entities.load_entities(path)
+    return known_entities.compile_matchers(names) if names else None
 
 
 @mcp.tool()
-def scan_pii(path: str, max_cells: int = 20000) -> dict:
+def scan_pii(path: str, max_cells: int = 20000, entities: str | None = None) -> dict:
     """Scan a file or folder for PII and return TYPES + LOCATIONS + COUNTS only —
     never the detected values. Safe to surface to an LLM: it learns what PII exists
     and where, without the substance entering context. Recurses into subfolders;
-    skips unreadable files and caps very large sheets, reporting both as notes."""
+    skips unreadable files and caps very large sheets, reporting both as notes.
+
+    `entities` is an optional PATH to a local `.obsify.entities` file (one name per
+    line) of KNOWN names to hide; matches (incl. suffix/abbreviation variants) are
+    reported as KNOWN_ENTITY. If omitted, a nearby `.obsify.entities` is auto-used.
+    The names are read locally and never returned."""
     root = Path(path)
     files = [root] if root.is_file() else sorted(
         p for p in root.rglob("*") if p.suffix.lower() in _SUFFIXES)
@@ -83,6 +107,7 @@ def scan_pii(path: str, max_cells: int = 20000) -> dict:
     findings: list[dict] = []
     low_coverage: list[dict] = []
     read_ok = 0
+    matchers = _known_matchers(entities, path)
     for f in files:
         segs, cov = extract_document(str(f), notes)
         if not segs and not cov:
@@ -94,7 +119,7 @@ def scan_pii(path: str, max_cells: int = 20000) -> dict:
             segs = segs[:max_cells]
         low_coverage += [{"document": c.document, "page": c.page} for c in cov if c.flag]
         for seg in segs:
-            for r in _detect(seg.text):
+            for r in _detect(seg.text, matchers):
                 by_type[r.entity_type] += 1
                 findings.append({"type": r.entity_type, "document": seg.document,
                                  "location": seg.locator})  # NO value
@@ -108,12 +133,16 @@ def scan_pii(path: str, max_cells: int = 20000) -> dict:
 
 
 @mcp.tool()
-def redact_text(text: str) -> str:
-    """Return `text` with detected PII replaced by [TYPE] placeholders (e.g.
-    [AU_TFN], [PERSON]). Deterministic; checksum-validated identifiers and
-    context/precision rules apply so bare numbers are not over-masked."""
+def redact_text(text: str, entities: str | None = None) -> str:
+    """Return `text` with detected PII replaced by <TYPE> placeholders (e.g.
+    <AU_TFN>, <PERSON>). Deterministic; checksum-validated identifiers and
+    context/precision rules apply so bare numbers are not over-masked.
+
+    `entities` is an optional PATH to a local `.obsify.entities` file of KNOWN names
+    to hide; matches (incl. variants) are masked as <KNOWN_ENTITY>. If omitted, a
+    nearby `.obsify.entities` is auto-used."""
     from presidio_anonymizer import AnonymizerEngine
-    results = _detect(text)
+    results = _detect(text, _known_matchers(entities))
     if not results:
         return text
     return AnonymizerEngine().anonymize(text=text, analyzer_results=results).text

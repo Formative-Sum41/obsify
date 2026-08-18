@@ -43,6 +43,11 @@ Excel `.xlsx`/`.xlsm`, and Word `.docx` (paragraphs + tables). Unreadable or uns
 are surfaced as explicit notes/blind spots, never silently dropped. (No OCR yet — scanned/image
 pages are flagged as low-coverage, not transcribed.)
 
+**Known-entity masking (optional).** Supply a local `.obsify.entities` list of names to hide;
+`scan_pii` / `redact_text` deterministically catch them — and the suffix/abbreviation variants
+NER misses (`BRIGHTWATER HLDGS P/L` for *Brightwater Holdings Pty Ltd*) — as `KNOWN_ENTITY`. The
+list stays local and never enters the model's context. See [`docs/known_entities.md`](docs/known_entities.md).
+
 ## Demo
 
 Poke at all five tools live against synthetic data with the official

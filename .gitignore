@@ -29,6 +29,8 @@ Thumbs.db
 /data/
 /twin/
 *.twin.xlsx
+# the known-entities list is a list of real names — never commit it
+.obsify.entities
 
 # eval harness: generated corpora + cached third-party benchmark data
 /eval_corpus/

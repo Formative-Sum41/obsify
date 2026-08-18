@@ -42,6 +42,7 @@ _MANIFEST_TEMPLATE = {
         {"glob": "*/corpus/*", "label": "restricted"},
         {"glob": "*/ground_truth/*", "label": "restricted"},
         {"glob": "*/data/*", "label": "confidential"},
+        {"glob": "*/.obsify.entities", "label": "restricted"},
     ],
     "labels": {
         "public": "read freely",
@@ -101,6 +102,29 @@ def _write_manifest(target: Path, force: bool) -> str:
     return f"[init] {verb} label manifest: {dest}"
 
 
+_ENTITIES_TEMPLATE = """\
+# .obsify.entities — KNOWN names to hide (one per line; '#' comments; blank lines ignored).
+# obsify masks these — and their suffix/abbreviation variants (e.g. "BRIGHTWATER HLDGS P/L"
+# for "Brightwater Holdings Pty Ltd") — as KNOWN_ENTITY in scan_pii / redact_text,
+# complementing NER on names it can't be trusted to catch.
+#
+# THIS FILE IS SENSITIVE — it is a list of real names. Keep it local, git-ignore it, and
+# never read it into an assistant's context (the manifest labels it 'restricted').
+#
+# Example (delete these and add your own):
+# Brightwater Holdings Pty Ltd
+# Priya Nair
+"""
+
+
+def _write_entities(target: Path) -> str:
+    dest = target / ".obsify.entities"
+    if dest.exists():   # never overwrite — it may hold real names
+        return f"[init] .obsify.entities already exists - left untouched: {dest}"
+    dest.write_text(_ENTITIES_TEMPLATE, encoding="utf-8")
+    return f"[init] wrote known-entities template (fill with names to hide): {dest}"
+
+
 def _maybe_claude_md(target: Path) -> str:
     """Append the convention block to CLAUDE.md, idempotently. Opt-in path only."""
     dest = target / "CLAUDE.md"
@@ -136,6 +160,8 @@ def main(argv: list[str] | None = None) -> int:
 
     # 1. Manifest — obsify owns this file, safe to write.
     print(_write_manifest(target, args.force))
+    # 1b. Known-entities template (empty; you fill it with names to hide).
+    print(_write_entities(target))
 
     # 2. CLAUDE.md — user's file. Opt-in append, else print for manual paste.
     print()
@@ -157,7 +183,8 @@ def main(argv: list[str] | None = None) -> int:
 
     print("\n[init] done. Next: (1) paste the hook snippet into .claude/settings.json, "
           "(2) restart the session so the hook loads, (3) label your sensitive folders in "
-          ".obsify.json. Full convention: docs/obsify_routing.md")
+          ".obsify.json, (4) add names to hide in .obsify.entities and git-ignore it "
+          "(`echo .obsify.entities >> .gitignore`). Full convention: docs/obsify_routing.md")
     return 0
 
 
