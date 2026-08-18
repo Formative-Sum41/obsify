@@ -11,7 +11,7 @@ python -m spacy download en_core_web_lg     # one-time
 pytest tests/ -q
 ```
 
-66 tests. What they establish:
+73 tests. What they establish:
 
 - **Internals** — extraction (PDF/Excel/DOCX), detection + precision filter, synthetic twin,
   sandbox, redaction self-check, guard classification, `obsify init` behavior.

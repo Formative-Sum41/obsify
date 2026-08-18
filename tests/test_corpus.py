@@ -39,7 +39,6 @@ def test_corpus_writes_all_formats():
         res = MC.build_corpus(d)
         names = {Path(f).name for f in res["files"]}
         assert "ledger.xlsx" in names and "audit_memo.docx" in names
-        assert "master_list.txt" in names
         # PDF only when reportlab is installed; otherwise a note explains the skip.
         if "engagement_letter.pdf" not in names:
             assert any("reportlab" in n for n in res["notes"])
@@ -87,8 +86,6 @@ def test_scan_is_shape_only_across_all_formats():
         res = MC.build_corpus(d)
         planted = _flat_planted(res["planted"])
         for f in res["files"]:
-            if f.endswith(".txt"):
-                continue  # the master list intentionally contains the client names
             blob = json.dumps(S.scan_pii(f)).lower()
             for v in planted:
                 assert v.lower() not in blob, f"scan_pii leaked {v!r} from {Path(f).name}"

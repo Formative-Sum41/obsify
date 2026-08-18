@@ -35,7 +35,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
 from obsify.config import DEFAULT_CONFIG
 from obsify.detection import _post_recognize_filter
-from obsify.nlp import build_analyzers
+from obsify.nlp import build_analyzer
 
 _URL = ("https://raw.githubusercontent.com/microsoft/presidio-research/master/"
         "data/synth_dataset_v2.json")
@@ -71,7 +71,7 @@ def _detect_spans(analyzer, text: str):
 
 def run(sample: int) -> dict:
     data = _load()
-    _, analyzer = build_analyzers(_CFG)
+    analyzer = build_analyzer(_CFG)
     caught: dict[str, int] = defaultdict(int)
     total: dict[str, int] = defaultdict(int)
 

@@ -8,16 +8,15 @@ guard** enforces them deterministically. The model never has to *choose* to be c
 a direct read of sensitive data is simply refused at the moment of need, and the model is
 handed the safe tools instead.
 
-This mirrors the project's governing rule (Architecture Golden Standard, D1/s258, D3/s091):
-**high-stakes constraints are enforced in code, not prompt.** The convention below guides;
-the hook enforces.
+This follows a simple rule: **high-stakes constraints are enforced in code, not prompt.**
+The convention below guides; the hook enforces.
 
 ---
 
 ## Quick start — `obsify init`
 
 ```
-python -m src.init [--dir PATH] [--with-claude-md] [--force] [--python PATH]
+python -m obsify.init [--dir PATH] [--with-claude-md] [--force] [--python PATH]
 ```
 
 One command scaffolds the routing layer into a project, **non-destructively**:
@@ -164,8 +163,8 @@ safe tool to use instead."
 - The guard classifies by **path**, not content. A sensitive file placed in a `public`
   path is not protected — labelling is the operator's responsibility, and the manifest
   should err toward over-labelling.
-- The guard gates the assistant's **tools**; it does not govern the operator's own local
-  runs of the harness (deny/hook govern tool calls, not subprocesses you launch yourself).
-- `run_on_real` output masking is best-effort, not a guarantee — see `src/sandbox.py`'s
+- The guard gates the assistant's **tools**; it does not govern your own local runs
+  (deny/hook govern tool calls, not subprocesses you launch yourself).
+- `run_on_real` output masking is best-effort, not a guarantee — see `obsify/sandbox.py`'s
   documented residuals. Return aggregates.
 ```

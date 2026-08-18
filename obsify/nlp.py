@@ -91,27 +91,15 @@ def build_nlp_engine():
     return provider.create_engine()
 
 
-def build_analyzers(config: Config) -> tuple[AnalyzerEngine, AnalyzerEngine]:
-    """Return (baseline_analyzer, custom_analyzer).
-
-    baseline  = Presidio out of the box (config A).
-    custom    = baseline + Australian custom recognizers (configs B and C).
-    Both share one loaded spaCy model.
-    """
+def build_analyzer(config: Config) -> AnalyzerEngine:
+    """Build the Presidio analyzer: baseline predefined recognizers plus obsify's
+    custom Australian recognizers, sharing one loaded spaCy model."""
     configure_offline()
     nlp_engine = build_nlp_engine()
-
-    baseline_registry = RecognizerRegistry()
-    baseline_registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["en"])
-    baseline = AnalyzerEngine(
-        nlp_engine=nlp_engine, registry=baseline_registry, supported_languages=["en"],
-    )
-
-    custom_registry = RecognizerRegistry()
-    custom_registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["en"])
+    registry = RecognizerRegistry()
+    registry.load_predefined_recognizers(nlp_engine=nlp_engine, languages=["en"])
     for recognizer in build_custom_recognizers(config):
-        custom_registry.add_recognizer(recognizer)
-    custom = AnalyzerEngine(
-        nlp_engine=nlp_engine, registry=custom_registry, supported_languages=["en"],
+        registry.add_recognizer(recognizer)
+    return AnalyzerEngine(
+        nlp_engine=nlp_engine, registry=registry, supported_languages=["en"],
     )
-    return baseline, custom

@@ -45,14 +45,16 @@ pages are flagged as low-coverage, not transcribed.)
 
 ## Demo
 
-![obsify's tools in the MCP Inspector, called against the synthetic corpus](docs/img/inspector.png)
+Poke at all five tools live against synthetic data with the official
+[MCP Inspector](https://github.com/modelcontextprotocol/inspector):
 
-*obsify's five tools in the [MCP Inspector](https://github.com/modelcontextprotocol/inspector),
-called against the synthetic corpus — `scan_pii` returns types / counts / locations only, never
-values.*
+```bash
+python -m obsify.make_corpus --out ./corpus_demo
+npx @modelcontextprotocol/inspector obsify-mcp
+```
 
-<!-- PLACEHOLDER: capture this with `npx @modelcontextprotocol/inspector obsify-mcp` (see
-     docs/verifying.md), then save the screenshot to docs/img/inspector.png. -->
+Call `scan_pii` on `./corpus_demo/ledger.xlsx` and confirm it returns types / counts /
+locations only — never values. See [`docs/verifying.md`](docs/verifying.md).
 
 ## Try it — synthetic corpus
 
@@ -172,7 +174,7 @@ pip install -e ".[dev]"
 pytest tests/            # or run any file directly: python tests/test_obsify.py
 ```
 
-Ten suites (66 tests), run in CI on Linux + Windows / Python 3.11 + 3.12:
+Twelve suites (73 tests), run in CI on Linux + Windows / Python 3.11 + 3.12:
 
 - **mcp-protocol** — launches the real server over stdio and speaks MCP to it (the same path a
   client like Claude uses): confirms all five tools register with valid schemas and that calls
@@ -185,7 +187,10 @@ Ten suites (66 tests), run in CI on Linux + Windows / Python 3.11 + 3.12:
 - **routing** — the guard's block/allow classification and `obsify init`'s non-destructive contract.
 - **corpus** — the synthetic PDF+Excel+DOCX corpus end to end: per-format detection, DOCX
   paragraph+table extraction, and shape-only output across every format.
-- **model** — first-run auto-download logic (no-op when present; clear error when disabled+missing).
+- **evaluation** — the scored harness as a regression gate (recall, suppression, FP-torture, gaps).
+- **robustness** — graceful degradation: corrupt/oversized/empty/nested/unsupported inputs never
+  crash and are always surfaced as notes.
+- **model / variants** — first-run model auto-download logic; variant normalization behind `verify_value_free`.
 
 For interactive verification (MCP Inspector) and the live-client last-mile check, see
 [`docs/verifying.md`](docs/verifying.md).

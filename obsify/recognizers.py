@@ -8,14 +8,14 @@ deterministic:
   contract is: validate_result() -> True promotes the match to full confidence,
   False drops it entirely. So a random 11-digit string is never reported as an
   ABN — only a checksum-valid one is. This keeps false positives near zero for
-  the structured identifiers, which is exactly where a risk team needs precision.
+  the structured identifiers.
 
 * Account numbers — validity is *contextual*: a 6-10 digit run only counts when
   it sits next to a BSB (XXX-XXX). That can't be decided from the matched span
   alone, so this is a full EntityRecognizer that inspects the surrounding text.
 
-* Engagement codes — a placeholder pattern flagged OPERATOR-TUNABLE; the regex
-  lives in obsify.config so the operator can retune it without touching this file.
+* Engagement codes — a placeholder pattern; the regex lives in obsify.config so it
+  can be retuned per firm without touching this file.
 """
 
 from __future__ import annotations
@@ -121,7 +121,7 @@ class AuDriverLicenceRecognizer(PatternRecognizer):
 
 class EngagementCodeRecognizer(PatternRecognizer):
     """Engagement codes. OPERATOR-TUNABLE: the pattern is supplied from Config so
-    the operator can retune it against real codes without editing this module."""
+    it can be retuned against real codes without editing this module."""
 
     def __init__(self, pattern: str) -> None:
         patterns = [Pattern("Engagement code (operator-tunable)", pattern, 0.6)]

@@ -36,7 +36,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 from obsify.config import DEFAULT_CONFIG
 from obsify.detection import _analyze
 from obsify.extraction import extract_document, normalize_ws
-from obsify.nlp import build_analyzers
+from obsify.nlp import build_analyzer
 
 # The detector users actually get (mcp_server's posture).
 _DETECT_CFG = replace(DEFAULT_CONFIG, suppress_letterless_detections=True,
@@ -59,7 +59,7 @@ def _f1(p: float, r: float) -> float:
 def evaluate(corpus_dir: str) -> dict:
     corpus = Path(corpus_dir)
     key = _load_key(corpus / "answer_key.jsonl")
-    _, analyzer = build_analyzers(_DETECT_CFG)
+    analyzer = build_analyzer(_DETECT_CFG)
 
     # detect (with values — synthetic only) per document
     dets_by_doc: dict[str, list] = {}
@@ -70,7 +70,7 @@ def evaluate(corpus_dir: str) -> dict:
             continue
         notes: list[str] = []
         segs, _ = extract_document(str(path), notes)
-        dets_by_doc[doc] = _analyze(analyzer, segs, _DETECT_CFG, "obsify")
+        dets_by_doc[doc] = _analyze(analyzer, segs, _DETECT_CFG)
 
     detnorm_by_doc = {doc: [(_norm(d.text), d) for d in dets] for doc, dets in dets_by_doc.items()}
 

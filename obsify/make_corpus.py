@@ -224,11 +224,6 @@ def build_corpus(out_dir: str) -> dict:
         notes.append("reportlab not installed; skipped engagement_letter.pdf "
                      "(install with: pip install \"obsify[demo]\")")
 
-    # A master list (client names) — handy for demonstrating differential tooling.
-    master = out / "master_list.txt"
-    master.write_text("\n".join(CLIENTS) + "\n", encoding="utf-8")
-    files.append(str(master))
-
     return {"files": files, "planted": planted(), "notes": notes}
 
 

@@ -56,9 +56,8 @@ _SUFFIXES = SUPPORTED_SUFFIXES  # pdf, xlsx/xlsm, docx — single source of trut
 def _analyzer():
     global _ANALYZER
     if _ANALYZER is None:
-        from obsify.nlp import build_analyzers
-        _, custom = build_analyzers(_DETECT_CFG)
-        _ANALYZER = custom
+        from obsify.nlp import build_analyzer
+        _ANALYZER = build_analyzer(_DETECT_CFG)
     return _ANALYZER
 
 
@@ -126,7 +125,7 @@ def verify_value_free(text: str, terms: list[str]) -> dict:
     suffix-normalized / distinctive-token variants). Returns {"value_free": bool}
     with zero detail on what matched — for verifying an artifact before it leaves
     the perimeter."""
-    leak = redaction_self_check(text, list(terms), [])
+    leak = redaction_self_check(text, list(terms))
     return {"value_free": not leak}
 
 

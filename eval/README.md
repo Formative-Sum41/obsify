@@ -37,7 +37,9 @@ The scored test (`tests/test_evaluation.py`) runs in the normal suite and gates 
 
 ## Representative results
 
-Scored harness (`eval/score.py`, ~28 planted items across PDF/Excel/DOCX):
+Scored harness (`eval/score.py`, 33 planted items across PDF/Excel/DOCX). Numbers below are
+a captured snapshot; the NER-dependent ones vary slightly with the spaCy model version, so the
+tests assert them as thresholds, not equalities:
 
 | Metric | Result |
 |---|---|

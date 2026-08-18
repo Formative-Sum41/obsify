@@ -41,7 +41,7 @@ compute = ["pandas>=2.2"]
 demo = ["reportlab>=4.0"]
 # Scored evaluation harness under eval/ (labelled corpus generator + scorer).
 eval = ["faker>=30", "reportlab>=4.0"]
-dev = ["pytest>=8", "reportlab>=4.0", "faker>=30"]
+dev = ["obsify[eval]", "pytest>=8"]
 
 [project.scripts]
 obsify = "obsify.init:main"            # scaffold the routing layer into a project

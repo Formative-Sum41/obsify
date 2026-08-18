@@ -1,4 +1,7 @@
-"""Tests for the differential variant expander (obsify/variants.py).
+"""Tests for variant normalization (obsify/variants.py).
+
+`canonicalize` and `distinctive_tokens` back `verify_value_free`'s variant-aware leak
+check: a term and its legal-suffix abbreviations must fold to the same canonical form.
 
 Run: python tests/test_variants.py
 """
@@ -10,51 +13,29 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 
-from obsify.variants import canonicalize, distinctive_tokens, full_match, fuzzy_match  # noqa: E402
+from obsify.variants import canonicalize, distinctive_tokens  # noqa: E402
 
 
-def test_suffix_normalized_full_matches():
-    # Dictionary abbreviations fold to the same canonical form -> full catch.
-    assert full_match("Veranth Holdings Pty Ltd", "elimination - VERANTH HLDGS P/L.")
-    assert full_match("Bluehaven Nominees Pty Ltd", "paid BLUEHAVEN NOMS P/L")
-    assert full_match("Trentmoor Logistics Pty Ltd", "TRENTMOOR LOGISTICS PROPRIETARY LIMITED")
+def test_canonicalize_folds_legal_suffix_variants():
+    # Abbreviated and full legal-suffix forms fold to the same canonical string, so a
+    # term and its variant compare equal in a leak check.
+    assert canonicalize("Veranth Holdings Pty Ltd") == canonicalize("VERANTH HLDGS P/L")
+    assert canonicalize("Bluehaven Nominees Pty Ltd") == canonicalize("BLUEHAVEN NOMS P/L")
+    assert canonicalize("Trentmoor Logistics Pty Ltd") == canonicalize(
+        "trentmoor logistics proprietary limited")
 
 
-def test_exact_is_a_full_match():
-    assert full_match("Calderwell Marine Pty Ltd", "for Calderwell Marine Pty Ltd today")
+def test_canonicalize_expected_form():
+    assert canonicalize("Veranth Holdings Pty Ltd") == "veranth holdings ptyltd"
 
 
-def test_full_match_is_contiguous_not_loose():
-    # Inserting a token breaks the full match (avoids over-broad catches).
-    assert not full_match("Calderwell Marine Pty Ltd", "Calderwell Marine Services Pty Ltd")
-
-
-def test_fuzzy_catches_nondictionary_truncation():
-    # 'NOM' is not a dictionary abbreviation, so it is fuzzy-only, never full.
-    m = "Bluehaven Nominees Pty Ltd"
-    assert not full_match(m, "distribution to BLUEHAVEN NOM P/L pending")
-    assert fuzzy_match(m, "distribution to BLUEHAVEN NOM P/L pending")
-
-
-def test_fuzzy_does_not_flag_unrelated_entity():
-    neg = "external counsel Smith & Associates Pty Ltd advised"
-    for m in ("Bluehaven Nominees Pty Ltd", "Calderwell Marine Pty Ltd",
-              "Veranth Holdings Pty Ltd", "Trentmoor Logistics Pty Ltd",
-              "Oskestra Civil Engineering Pty Ltd"):
-        assert not fuzzy_match(m, neg), m
-
-
-def test_fuzzy_requires_all_distinctive_tokens_in_window():
-    # Only one distinctive token present -> no fuzzy hit.
-    assert not fuzzy_match("Calderwell Marine Pty Ltd", "the marine survey was filed")
-    # Tokens too far apart -> outside the window.
-    assert not fuzzy_match("Calderwell Marine Pty Ltd",
-                           "Calderwell paid the invoice for the marine survey last week")
+def test_canonicalize_distinguishes_unrelated_entities():
+    assert canonicalize("Calderwell Marine Pty Ltd") != canonicalize("Smith Associates Pty Ltd")
 
 
 def test_distinctive_tokens_drop_legal_suffixes():
     assert distinctive_tokens("Bluehaven Nominees Pty Ltd") == ["bluehaven", "nominees"]
-    assert canonicalize("Veranth Holdings Pty Ltd") == "veranth holdings ptyltd"
+    assert distinctive_tokens("Calderwell Marine Pty Ltd") == ["calderwell", "marine"]
 
 
 if __name__ == "__main__":

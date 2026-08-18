@@ -1,13 +1,12 @@
 """Deterministic checksum validators for Australian entity identifiers.
 
-These validators are the measurement crux of the harness: the fixture generator
-uses them to *mint* valid ABNs/ACNs/TFNs, and the detection recognizers use them
-to *confirm* candidates. Because generator and recognizer share this code, a bug
-here would be invisible in an end-to-end test (both sides would agree while both
-being wrong). To break that circularity, each algorithm below is anchored to an
-externally-published worked example, and tests/test_checksums.py checks these
-validators against those external valid AND invalid numbers before anything is
-generated.
+The detection recognizers use these to *confirm* candidates (a random 11-digit
+string is never reported as an ABN — only a checksum-valid one is), and the demo/eval
+generators use the minting helpers to produce valid synthetic identifiers. Because
+generator and recognizer would share this code, each algorithm below is anchored to an
+externally-published worked example and tests/test_checksums.py checks these validators
+against those external valid AND invalid numbers — breaking the generator/validator
+circularity.
 
 All validators accept a raw string (which may contain spaces, hyphens, or other
 separators), extract the digits, and return a bool. They never raise on

@@ -1,14 +1,13 @@
 """Text extraction from PDF, Excel and Word (.docx) documents.
 
-Produces a flat list of `Segment`s. Each segment is a normalized plain-text span
-tagged with a precise source location, so that when a downstream configuration
-*misses* a PII item, the report can point the operator at exactly where it lives
-(page/table/cell). Extraction performs no detection and no judgement.
+Produces a flat list of `Segment`s — each a normalized plain-text span tagged with a
+precise source location (page/table/cell) so a detection can be traced back to where
+it lives. Extraction performs no detection and no judgement.
 
-Extractors are deterministic and read-only. camelot is a lazy, optional fallback
-for complex tables (it depends on a system Ghostscript binary); when it is
-unavailable the harness records that fact and proceeds with pdfplumber output
-rather than failing the run (graceful degradation with an explicit signal).
+Extractors are deterministic and read-only. camelot is a lazy, optional fallback for
+complex tables (it needs a system Ghostscript binary); when unavailable, obsify records
+a note and proceeds on pdfplumber output rather than failing — graceful degradation
+with an explicit signal.
 """
 
 from __future__ import annotations
@@ -35,8 +34,7 @@ def normalize_ws(text: str) -> str:
     breaks) to single spaces.
 
     This is what joins a value split across a line break *within* a cell or
-    paragraph into a single matchable span. Whitespace normalization here must
-    stay consistent with the scoring matcher, which is also whitespace-collapsed.
+    paragraph into a single matchable span.
     """
     text = _XML_CTRL.sub(" ", text)
     return _WS.sub(" ", text.replace(" ", " ")).strip()
@@ -58,17 +56,6 @@ class PageCoverage:
     median: int
     flag: str  # "" if fine, else a LOW COVERAGE message
 
-    def as_dict(self) -> dict:
-        return {"document": self.document, "page": self.page, "chars": self.chars,
-                "median": self.median, "flag": self.flag}
-
-
-@dataclass
-class ExtractionResult:
-    segments: list[Segment]
-    notes: list[str]  # operator-visible extraction notes (e.g. camelot fallback status)
-    coverage: list[PageCoverage]  # per-PDF-page extraction volume + low-coverage flags
-
 
 # A page extracting fewer than this fraction of the document's median character
 # count (or zero) is flagged as possible under-extraction / image content.
@@ -81,7 +68,7 @@ def _try_camelot(pdf_path: str, page_number: int, notes: list[str]) -> list[Segm
     """Attempt a camelot table extraction for one page. Returns segments or None.
 
     Imported lazily because camelot pulls in Ghostscript/opencv; a missing
-    dependency must degrade gracefully, not crash the harness.
+    dependency must degrade gracefully, not crash the run.
     """
     try:
         import camelot  # noqa: PLC0415  (intentional lazy import)
@@ -187,8 +174,8 @@ def extract_excel(xlsx_path: str) -> list[Segment]:
     document = Path(xlsx_path).name
     segments: list[Segment] = []
 
-    # data_only=True yields computed values rather than formulae; the harness
-    # measures detection over the visible content an analyst would see.
+    # data_only=True yields computed values rather than formulae — obsify scans the
+    # visible content an analyst would see.
     wb = openpyxl.load_workbook(xlsx_path, data_only=True, read_only=True)
     try:
         for sheet in wb.worksheets:
@@ -293,7 +280,7 @@ def extract_document(path: str, notes: list[str]) -> tuple[list[Segment], list[P
         return [], []
     # A corrupt/encrypted/old-format file (e.g. real .xls saved as .xlsx, a
     # password-protected book) must be skipped with a note, never crash the run —
-    # an unread file is a blind spot the operator must see, not a halted pipeline.
+    # an unread file is a blind spot to surface, not a halted pipeline.
     try:
         if suffix in _PDF_SUFFIXES:
             segments, page_chars = extract_pdf(path, notes)
@@ -304,17 +291,3 @@ def extract_document(path: str, notes: list[str]) -> tuple[list[Segment], list[P
     except Exception as exc:
         notes.append(f"could not read {document}: {type(exc).__name__}; SKIPPED (unread blind spot)")
         return [], []
-
-
-def extract_input_dir(input_dir: str) -> ExtractionResult:
-    """Extract every supported document in a directory (non-recursive, sorted)."""
-    notes: list[str] = []
-    segments: list[Segment] = []
-    coverage: list[PageCoverage] = []
-    root = Path(input_dir)
-    for path in sorted(root.iterdir()):
-        if path.is_file() and path.suffix.lower() in SUPPORTED_SUFFIXES:
-            segs, cov = extract_document(str(path), notes)
-            segments.extend(segs)
-            coverage.extend(cov)
-    return ExtractionResult(segments=segments, notes=notes, coverage=coverage)

@@ -1,24 +1,22 @@
-"""Harness configuration.
+"""Detection configuration.
 
-Everything an operator might tune lives here as data, so a run is fully described
-by this object plus the CLI arguments. `config_hash()` produces a short stable
-digest recorded in every report and run-log line, so any result can be tied back
-to the exact configuration that produced it (audit trail is the product).
+Everything tunable lives here as data: the entity types obsify detects, the custom
+recognizer patterns, the precision-filter switches, and the context words that gate
+identifier detection. `DEFAULT_CONFIG` is the recall-oriented default; the MCP server
+enables the precision suppressors on top of it (see obsify.mcp_server).
 """
 
 from __future__ import annotations
 
-import hashlib
-import json
-from dataclasses import asdict, dataclass, field
+from dataclasses import dataclass, field
 
 
 @dataclass(frozen=True)
 class Config:
     # --- OPERATOR-TUNABLE -----------------------------------------------------
     # Engagement/matter codes are a placeholder pattern. Real codes vary by firm and
-    # system; the operator MUST review and tune this regex against a sample of real
-    # codes before trusting configuration B/C recall for engagement codes.
+    # system; review and tune this regex against a sample of real codes before
+    # trusting engagement-code recall.
     # Format as shipped: 2-4 uppercase letters, a hyphen, then 4-8 digits.
     engagement_code_pattern: str = r"\b[A-Z]{2,4}-\d{4,8}\b"
 
@@ -40,7 +38,7 @@ class Config:
     # Presidio decision threshold: detections below this confidence are dropped.
     presidio_score_threshold: float = 0.4
 
-    # --- precision controls (Phase A) ----------------------------------------
+    # --- precision controls ---------------------------------------------------
     # On real numeric ledgers, bare numbers coincidentally pass ID checksums
     # (a sequential journal ref passes the 8-digit TFN check ~9% of the time) and
     # NER flags codes/amounts/dates. These deterministic post-filters cut that
@@ -48,7 +46,7 @@ class Config:
     #
     # require_context: these identifier types are only accepted when a label word
     # (id_context_words) appears in the same segment — a bare number is dropped.
-    # ON by default (labelled IDs in prose still pass; the fixtures are labelled).
+    # A labelled ID in prose still passes.
     require_context_for_entities: tuple[str, ...] = (
         "AU_ABN", "AU_ACN", "AU_TFN", "MEDICARE", "DATE_OF_BIRTH",
         "AU_PASSPORT", "AU_DRIVER_LICENCE")
@@ -62,33 +60,23 @@ class Config:
         "AU_DRIVER_LICENCE": ("licence", "license", "driver"),
     })
     # suppress_letterless: drop detections whose span has NO letter (pure numbers,
-    # amounts, dates) EXCEPT context-validated IDs and BSB-adjacent accounts.
+    # amounts, dates) EXCEPT validated PII (context IDs, BSB-adjacent accounts, Luhn
+    # cards, valid IPs, real phones — see detection._post_recognize_filter).
     # suppress_ner_with_digits: drop PERSON/ORGANIZATION/LOCATION whose span holds
     # a digit (journal codes like EP180102) — real names carry no digits.
-    # Both default OFF (eval/recall mode) and are enabled by detect-mode.
+    # Both default OFF (recall mode); the MCP server enables them (detect mode).
     suppress_letterless_detections: bool = False
     suppress_ner_with_digits: bool = False
 
-    # Entities of interest: the single set of entity types the harness *counts*
-    # as a PII detection, applied uniformly across all three configurations so
-    # comparisons are fair. Passed to Presidio's analyze() to restrict output.
-    #
-    # MEASUREMENT DECISION — ORGANIZATION is INCLUDED. spaCy tags clean client
-    # names ("X Pty Ltd") as ORGANIZATION, so config A/B legitimately catch them;
-    # excluding it would have zeroed out the baseline's real recall on client
-    # names and manufactured apparent value for the config-C differential. It is
-    # counted, and its precision cost is visible in the false-positive column
-    # (every incidental org mention — an audit firm, a tax office, a bank — is
-    # flagged). DATE_TIME
-    # and URL remain excluded as low-value-for-this-use-case noise. All three are
-    # OPERATOR-TUNABLE: widen or narrow this set as the risk team decides.
-    #
-    # Baseline types appear in config A; the custom AU types only appear once
-    # their recognizers are added (B); CLIENT_NAME only appears via the
-    # differential check (C).
+    # The entity types obsify detects, passed to Presidio's analyze() to restrict
+    # output. ORGANIZATION is INCLUDED: spaCy tags company names ("X Pty Ltd") as
+    # ORGANIZATION, so it carries real recall on entity names — at a visible
+    # precision cost (incidental org mentions get flagged), the tradeoff documented
+    # in eval/. DATE_TIME and URL are excluded as low-value noise (DATE_OF_BIRTH is
+    # a separate context-gated recognizer). Widen or narrow this set as needed.
     entities_of_interest: tuple[str, ...] = field(
         default_factory=lambda: (
-            # Presidio baseline PII (config A onward)
+            # Presidio baseline recognizers
             "PERSON",
             "ORGANIZATION",
             "EMAIL_ADDRESS",
@@ -97,7 +85,7 @@ class Config:
             "CREDIT_CARD",
             "IBAN_CODE",
             "IP_ADDRESS",
-            # Custom Australian recognizers (config B onward)
+            # obsify's custom Australian recognizers
             "AU_ABN",
             "AU_ACN",
             "AU_TFN",
@@ -108,18 +96,8 @@ class Config:
             "AU_PASSPORT",
             "AU_DRIVER_LICENCE",
             "ENGAGEMENT_CODE",
-            # Differential master-list check (config C)
-            "CLIENT_NAME",
         )
     )
-
-    def to_dict(self) -> dict:
-        return asdict(self)
-
-    def config_hash(self) -> str:
-        """Stable 12-char digest of the full configuration."""
-        blob = json.dumps(self.to_dict(), sort_keys=True, default=list)
-        return hashlib.sha256(blob.encode("utf-8")).hexdigest()[:12]
 
 
 DEFAULT_CONFIG = Config()
