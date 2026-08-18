@@ -55,8 +55,7 @@ subtrees can override).
     { "glob": "*/ground_truth/*", "label": "restricted" },
     { "glob": "*/data/*",         "label": "confidential" }
   ],
-  "obsify_tools": ["scan_pii", "run_on_real", "make_synthetic_twin"],
-  "twin_dir": "twin"
+  "obsify_tools": ["scan_pii", "run_on_real", "make_synthetic_twin"]
 }
 ```
 

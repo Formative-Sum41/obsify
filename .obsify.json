@@ -14,6 +14,5 @@
     "confidential": "no direct read — use obsify (scan_pii / run_on_real / make_synthetic_twin)",
     "restricted": "no direct read, no raw output — obsify with masked/aggregated results only"
   },
-  "obsify_tools": ["scan_pii", "run_on_real", "make_synthetic_twin"],
-  "twin_dir": "twin"
+  "obsify_tools": ["scan_pii", "run_on_real", "make_synthetic_twin"]
 }

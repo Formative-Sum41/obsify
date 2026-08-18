@@ -50,7 +50,6 @@ _MANIFEST_TEMPLATE = {
         "restricted": "no direct read, no raw output - obsify with masked/aggregated results only",
     },
     "obsify_tools": ["scan_pii", "run_on_real", "make_synthetic_twin"],
-    "twin_dir": "twin",
 }
 
 # Marker-wrapped block appended to CLAUDE.md only with --with-claude-md (idempotent).
