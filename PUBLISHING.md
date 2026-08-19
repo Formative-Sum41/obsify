@@ -17,8 +17,8 @@ understand it, then let the GitHub Actions workflow (bottom) do it on every rele
       distribution name (e.g. `obsify-mcp`) and update `[project].name` in `pyproject.toml`.
       The MCP command stays `obsify-mcp` regardless (it's a `[project.scripts]` entry).
 - [x] `[project.urls]` and the README git-install line point at `github.com/Formative-Sum41/obsify`.
-- [ ] Set `authors` in `pyproject.toml` and the real copyright holder in `LICENSE` (currently
-      "obsify contributors").
+- [x] `authors` in `pyproject.toml` and the `LICENSE` copyright holder set to `Formative-Sum41`.
+- [x] `CHANGELOG.md` present; README badges added.
 - [ ] Set the release version in `pyproject.toml` **and** `obsify/__init__.py` (`__version__`) —
       keep them in sync. Use [semver](https://semver.org/) (start at `0.1.0`).
 - [ ] `pytest tests/` is green locally.

@@ -1,5 +1,10 @@
 # obsify
 
+[![CI](https://github.com/Formative-Sum41/obsify/actions/workflows/ci.yml/badge.svg)](https://github.com/Formative-Sum41/obsify/actions/workflows/ci.yml)
+[![PyPI](https://img.shields.io/pypi/v/obsify.svg)](https://pypi.org/project/obsify/)
+![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
+[![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
+
 **Let an AI assistant work on sensitive files without their raw values ever entering the model's context.**
 
 obsify is a local, deterministic [MCP](https://modelcontextprotocol.io) server. The frontier
