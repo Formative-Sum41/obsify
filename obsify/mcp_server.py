@@ -38,6 +38,7 @@ from obsify.redaction import redaction_self_check
 
 mcp = MCPServer(
     name="obsify",
+    version=obsify.__version__,
     title="obsify — privacy-preserving PII toolkit",
     description="Local, deterministic PII detection, redaction and verification. "
                 "Substance stays local; only shape is returned.",
