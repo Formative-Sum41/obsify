@@ -18,4 +18,8 @@ RUN pip install --no-cache-dir .
 # Speak MCP over stdio. On the first real tool call, obsify downloads the public NER
 # model once and caches it (set OBSIFY_AUTO_DOWNLOAD=0 to forbid and vendor it yourself);
 # introspection never triggers that, so the container starts fast.
-ENTRYPOINT ["obsify-mcp"]
+#
+# CMD (not ENTRYPOINT) so a host that supplies its own run command — e.g. Glama's
+# "CMD arguments" field — maps cleanly to it. `docker run <image>` still starts the
+# server on its own; a host may pass ["obsify-mcp"] explicitly.
+CMD ["obsify-mcp"]
