@@ -92,17 +92,54 @@ runs on every GitHub Release and the `pypi` GitHub environment exists. The **one
 After that, cutting a GitHub Release (§7) publishes automatically — no token.
 
 ### Releasing a new version
-1. Bump `__version__` in **`obsify/__init__.py`** (single source; pyproject reads it) and update `CHANGELOG.md`.
-2. Commit + push; ensure CI is green.
-3. `git tag vX.Y.Z && git push origin vX.Y.Z`, then create a **GitHub Release** from that tag.
-   `publish.yml` builds and uploads to PyPI via OIDC. (PyPI versions are immutable — always bump.)
 
-## 9. Discoverability (post-publish)
+Three version strings must move together, or the registry ends up pinned to an old release while
+PyPI moves on. Bump all three, then publish to both targets:
 
-- [ ] Add badges to the README (PyPI version, CI status, license).
-- [ ] Submit to MCP registries: the official
-      [servers list](https://github.com/modelcontextprotocol/servers),
-      [awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers), and directories like
-      glama.ai / mcp.so / the Cursor MCP directory.
-- [ ] Keep a `CHANGELOG.md`; bump the version for every release (never re-upload a version — PyPI
-      is immutable per version).
+1. **Bump the version in all three places (keep in sync):**
+   - `obsify/__init__.py` → `__version__` (single source; `pyproject.toml` reads it via hatchling).
+   - `server.json` → **both** the top-level `"version"` **and** `packages[0].version`.
+2. Update `CHANGELOG.md`; commit + push; ensure CI is green.
+3. **PyPI (automated):** `git tag vX.Y.Z && git push origin vX.Y.Z`, then create a **GitHub Release**
+   from that tag. `publish.yml` builds and uploads to PyPI via OIDC. (PyPI versions are immutable —
+   always bump.)
+4. **MCP Registry (manual, one command):** from the repo root, `mcp-publisher publish` (see §9).
+   Registry versions are immutable too, so this must be the version you just bumped.
+
+## 9. Publish to the official MCP Registry
+
+The [official registry](https://registry.modelcontextprotocol.io) is the source most third-party
+directories (mcp.so, Cursor, …) ingest from. obsify publishes via the `mcp-publisher` CLI, driven by
+`server.json` (already present + schema-valid) and the `<!-- mcp-name: … -->` marker in `README.md`
+(which proves PyPI-package ownership — keep it in the packaged description).
+
+**One-time setup:**
+1. Get the CLI: download the `mcp-publisher` binary from
+   [modelcontextprotocol/registry releases](https://github.com/modelcontextprotocol/registry/releases/latest)
+   (or `go install github.com/modelcontextprotocol/registry/cmd/mcp-publisher@latest`).
+2. `mcp-publisher login github` — GitHub device-flow; authorize as the account that owns the repo
+   (`Formative-Sum41`). This authorizes the `io.github.Formative-Sum41/*` namespace. Login persists.
+
+**Every release (after the PyPI step above):**
+```bash
+mcp-publisher validate     # optional: schema-check server.json first
+mcp-publisher publish       # reads ./server.json, publishes the bumped version
+```
+Verify: `curl "https://registry.modelcontextprotocol.io/v0.1/servers?search=obsify"` shows the new version.
+
+## 10. Discoverability (post-publish)
+
+Done for 0.1.2 — recorded here as the standing checklist:
+
+- [x] README badges (PyPI version, CI status, license).
+- [x] **Official MCP Registry** — published as `io.github.Formative-Sum41/obsify` (§9).
+- [x] **[punkpeye/awesome-mcp-servers](https://github.com/punkpeye/awesome-mcp-servers)** — PR
+      adding obsify to the 🔒 Security category. Their bot requires a **Glama listing + score badge**
+      (submit at https://glama.ai/mcp/servers; a `Dockerfile` in this repo lets Glama's start +
+      introspection check pass), then the entry gets a
+      `[![…](https://glama.ai/mcp/servers/OWNER/REPO/badges/score.svg)](…)` badge.
+- [x] **[mcpservers.org](https://mcpservers.org/submit)** — web-form submission (free tier; the site
+      backs `wong2/awesome-mcp-servers`, which does **not** take PRs).
+- [ ] Auto-ingest (no action): glama.ai (from the awesome PR) and mcp.so (from the official registry).
+- [x] Keep a `CHANGELOG.md`; bump the version every release (never re-upload — PyPI/registry are
+      immutable per version).
