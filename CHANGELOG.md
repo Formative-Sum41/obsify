@@ -3,6 +3,13 @@
 All notable changes to obsify are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [0.1.1] — 2026-08-20
+
+### Changed
+- Release/packaging only (no functional changes): the package version is now single-source
+  (`obsify/__init__.py`), and releases publish via GitHub Trusted Publishing (OIDC) on a
+  tagged GitHub Release — no stored token.
+
 ## [0.1.0] — 2026-08-20
 
 Initial release. A local, privacy-preserving PII toolkit over MCP: the model reasons on
