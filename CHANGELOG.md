@@ -3,6 +3,29 @@
 All notable changes to obsify are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [0.2.0] — 2026-08-20
+
+### Added
+- **Credential / secret detection** — a new deterministic `CREDENTIAL` recognizer for the
+  "before I paste this into a hosted LLM" threat model, where a leaked cloud key or DB
+  connection string is as damaging as any PII. Anchored patterns only (no entropy
+  heuristics, which flood on hex/base64 columns):
+  - Vendor-prefixed, near-zero false positive: AWS access key ID (`AKIA…`/`ASIA…`),
+    GitHub token (`ghp_…`), Google API key (`AIza…`), Slack (`xox…`), Stripe
+    (`sk_live_…`), JWTs (`eyJ….….…`).
+  - Private-key blocks — the **whole** `BEGIN…END` PEM block is matched, so redaction
+    removes the key body, not just the header.
+  - DB connection strings with an embedded password (`scheme://user:pass@host`).
+  - Keyword-anchored generics (`api_key` / `secret` / `password = <value>`), where the
+    value must be quoted or contain a digit, so prose like "password: please reset" is
+    not flagged. Namespaced identifiers (`AWS_SECRET_ACCESS_KEY=…`) are caught.
+- Credentials are exempt from the letterless-suppression filter and are **not**
+  context-gated (the patterns self-anchor), and flow through `scan_pii` (as `CREDENTIAL`
+  counts/locations) and `redact_text` (masked to `<CREDENTIAL>`) with no API change.
+- Eval corpus + `tests/test_credentials.py` cover detection and prose-precision; all test
+  fixtures are synthetic and built from split literals so no committed value trips secret
+  scanners.
+
 ## [0.1.2] — 2026-08-20
 
 ### Added

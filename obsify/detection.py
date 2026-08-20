@@ -77,7 +77,7 @@ def _post_recognize_filter(results, seg_text: str, config: Config):
             # bare numbers: context-gated IDs, BSB-adjacent accounts, Luhn cards, and
             # valid IPs. Phones survive only with context or a strong phone shape.
             exempt = (et in config.require_context_for_entities
-                      or et in ("AU_BANK_ACCOUNT", "CREDIT_CARD", "IP_ADDRESS"))
+                      or et in ("AU_BANK_ACCOUNT", "CREDIT_CARD", "IP_ADDRESS", "CREDENTIAL"))
             if et == "PHONE_NUMBER" and not exempt:
                 exempt = _phone_survives(span, low)
             if not exempt:

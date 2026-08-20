@@ -96,6 +96,8 @@ class Config:
             "AU_PASSPORT",
             "AU_DRIVER_LICENCE",
             "ENGAGEMENT_CODE",
+            # secrets/credentials — anchored patterns (see CredentialRecognizer)
+            "CREDENTIAL",
         )
     )
 

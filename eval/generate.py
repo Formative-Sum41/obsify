@@ -193,6 +193,17 @@ def build_docx(path: Path) -> None:
     dl = plant(doc, "AU_DRIVER_LICENCE", "04938271", "detect", "driver licence, in-context")
     d.add_paragraph(f"Site contact driver licence {dl} verified on arrival.")
 
+    # Credentials/secrets — vendor-anchored shapes (all synthetic, non-functional). Built
+    # from split literals so no contiguous real-looking token is committed to source.
+    aws_key = "AKIAIOSFODNN7EXAMPLE"                    # AWS's documented example key ID
+    gh_token = "ghp_" + "0" * 36
+    stripe_key = "sk_live_" + "0" * 24
+    for v in (aws_key, gh_token, stripe_key):
+        plant(doc, "CREDENTIAL", v, "detect", "secret/API key in prose")
+    d.add_paragraph(
+        f"CI note (rotate before go-live): access key {aws_key}, "
+        f"deploy token {gh_token}, billing key {stripe_key}.")
+
     d.add_heading("Vendors", level=2)
     t = d.add_table(rows=1, cols=2)
     t.rows[0].cells[0].text, t.rows[0].cells[1].text = "Vendor", "Registration"

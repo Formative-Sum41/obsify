@@ -15,9 +15,10 @@ local code touches the **substance** and returns only masked, aggregated results
 no network at runtime: detection is regex + checksums + dictionaries + [Presidio](https://github.com/microsoft/presidio)'s
 local NER.
 
-It ships with Australian entity support (ABN / ACN / TFN, checksum-validated) and a
-label-driven **routing layer** that makes "when should the assistant avoid raw data" a
-deterministic, enforced decision rather than a judgement call.
+It ships with Australian entity support (ABN / ACN / TFN, checksum-validated),
+**credential/secret detection** (cloud keys, API tokens, private keys, DB connection
+strings), and a label-driven **routing layer** that makes "when should the assistant avoid
+raw data" a deterministic, enforced decision rather than a judgement call.
 
 > **Honest scope:** `run_on_real` executes model-written code in a *best-effort* local sandbox
 > and masks its output *best-effort*. It is not a jail. Read [`SECURITY.md`](SECURITY.md) before
@@ -164,6 +165,11 @@ Full convention: [`docs/obsify_routing.md`](docs/obsify_routing.md).
   Validated letterless PII stays exempt: checksum IDs (ABN/ACN/TFN/Medicare), Luhn cards, valid
   IPs, BSB-adjacent accounts, and phones (via context or phone shape) — while a decimal point
   still marks an amount, not a phone.
+- **Credentials, not just PII.** Cloud keys (AWS/GitHub/Google/Slack/Stripe), JWTs, private-key
+  blocks and DB connection strings are flagged as `CREDENTIAL` by *anchored* patterns — vendor
+  prefixes (`AKIA…`, `ghp_…`) or a keyword-gated `secret = <value>`, never entropy heuristics
+  (which would flood on hex/base64 ledger columns). The whole `BEGIN…END` private-key block is
+  masked, not just its header, so no key body is left behind.
 
 ## Measured accuracy
 
@@ -186,7 +192,7 @@ pip install -e ".[dev]"
 pytest tests/            # or run any file directly: python tests/test_obsify.py
 ```
 
-Twelve suites (73 tests), run in CI on Linux + Windows / Python 3.11 + 3.12:
+Thirteen suites (88 tests), run in CI on Linux + Windows / Python 3.11 + 3.12:
 
 - **mcp-protocol** — launches the real server over stdio and speaks MCP to it (the same path a
   client like Claude uses): confirms all five tools register with valid schemas and that calls
@@ -196,6 +202,8 @@ Twelve suites (73 tests), run in CI on Linux + Windows / Python 3.11 + 3.12:
 - **obsify / twin / redaction** — the privacy invariants: shape-only output, leak-free twins,
   and a fail-closed self-check.
 - **precision** — the false-positive suppressors kill numeric-ledger noise while keeping real names.
+- **credentials** — the anchored secret patterns catch cloud keys / tokens / JWTs / private-key
+  blocks / connection strings, while keyword-anchored generics stay precise on prose (no entropy).
 - **routing** — the guard's block/allow classification and `obsify init`'s non-destructive contract.
 - **corpus** — the synthetic PDF+Excel+DOCX corpus end to end: per-format detection, DOCX
   paragraph+table extraction, and shape-only output across every format.

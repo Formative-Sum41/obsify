@@ -266,6 +266,64 @@ class AuAddressRecognizer(EntityRecognizer):
         return results
 
 
+class CredentialRecognizer(PatternRecognizer):
+    """Secrets and credentials that must never reach a hosted model — cloud keys, API
+    tokens, JWTs, private keys and DB connection strings with embedded passwords.
+
+    In the "before I paste this into an LLM" threat model a leaked AWS key or database
+    connection string is as damaging as any PII, so obsify flags them too. Every pattern
+    is either VENDOR-ANCHORED (a fixed prefix like ``AKIA`` / ``ghp_`` / ``sk_live_`` —
+    near-zero false positives) or KEYWORD-ANCHORED (``api_key`` / ``secret`` /
+    ``password = <value>``, where the value must be quoted or contain a digit).
+    Deliberately NO entropy heuristics — those flood on hex/base64 numeric columns, the
+    exact false-positive class obsify exists to avoid. The whole match span is flagged,
+    so for a private key the entire BEGIN..END block is masked, never just the header
+    (which would leave the key body behind).
+    """
+
+    # Shared keyword alternation for the generic "secret = value" patterns.
+    _SECRET_KW = (r"(?:api[_-]?key|secret|access[_-]?key|client[_-]?secret|"
+                  r"auth[_-]?token|token|passwd|password|pwd)")
+
+    def __init__(self) -> None:
+        kw = self._SECRET_KW
+        patterns = [
+            # --- vendor-anchored: a fixed prefix makes these near-zero false-positive
+            Pattern("AWS access key ID", r"\b(?:AKIA|ASIA)[A-Z0-9]{16}\b", 0.9),
+            Pattern("GitHub token", r"\bgh[pousr]_[A-Za-z0-9]{36}\b", 0.9),
+            Pattern("Google API key", r"\bAIza[A-Za-z0-9_-]{35}\b", 0.9),
+            Pattern("Slack token", r"\bxox[baprs]-[A-Za-z0-9-]{10,}\b", 0.9),
+            Pattern("Stripe secret key", r"\b[rs]k_(?:live|test)_[A-Za-z0-9]{16,}\b", 0.9),
+            Pattern("JSON Web Token",
+                    r"\beyJ[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\.[A-Za-z0-9_-]{8,}\b", 0.85),
+            # --- private key BLOCK: match BEGIN..END so no key body is left behind
+            Pattern("Private key block",
+                    r"-----BEGIN[A-Z ]*PRIVATE KEY-----.*?-----END[A-Z ]*PRIVATE KEY-----",
+                    0.95),
+            # --- DB connection string carrying an embedded password
+            Pattern("DB connection string with credentials",
+                    r"\b(?:postgres(?:ql)?|mysql|mongodb(?:\+srv)?|redis|amqps?)://"
+                    r"[^\s:/@'\"]+:[^\s:/@'\"]+@[^\s'\"]+", 0.85),
+            # --- keyword-anchored generic secret: value quoted OR contains a digit.
+            # The keyword may be the tail of a namespaced identifier (AWS_SECRET_ACCESS_KEY,
+            # DB_PASSWORD); the following `= <value>` is the right boundary, so a bare word
+            # like "passwords" or "tokenizer" is not matched.
+            Pattern("Secret assignment (quoted value)",
+                    rf"\b[\w.\-]*{kw}\s*[:=]\s*[\"'][^\"'\s]{{8,}}[\"']", 0.7),
+            Pattern("Secret assignment (value with digit)",
+                    rf"\b[\w.\-]*{kw}\s*[:=]\s*(?=[^\s\"']*\d)[A-Za-z0-9._\-/+=]{{8,}}", 0.7),
+            # --- HTTP Authorization: Bearer <token>
+            Pattern("Bearer token", r"\bBearer\s+[A-Za-z0-9._~+/\-]{16,}=*", 0.7),
+        ]
+        # One global flag set for all patterns: DOTALL lets the private-key block span
+        # newlines; IGNORECASE covers api_key/API_KEY and lower-cased vendor prefixes.
+        super().__init__(
+            supported_entity="CREDENTIAL", patterns=patterns,
+            context=["secret", "token", "key", "password", "credential", "auth"],
+            global_regex_flags=re.IGNORECASE | re.DOTALL | re.MULTILINE,
+        )
+
+
 def build_custom_recognizers(config: Config) -> list[EntityRecognizer]:
     """The full set of configuration-B custom recognizers."""
     return [
@@ -279,4 +337,5 @@ def build_custom_recognizers(config: Config) -> list[EntityRecognizer]:
         EngagementCodeRecognizer(config.engagement_code_pattern),
         BsbAdjacentAccountRecognizer(config),
         AuAddressRecognizer(),
+        CredentialRecognizer(),
     ]
