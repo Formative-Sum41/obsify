@@ -215,6 +215,28 @@ Thirteen suites (88 tests), run in CI on Linux + Windows / Python 3.11 + 3.12:
 For interactive verification (MCP Inspector) and the live-client last-mile check, see
 [`docs/verifying.md`](docs/verifying.md).
 
+## Related work
+
+obsify is one of several MCP servers tackling "let an AI touch sensitive data safely" — they're
+mostly **complementary**, solving the same problem from different ends. Worth knowing where each fits:
+
+| Tool | Approach | Best for |
+|---|---|---|
+| **obsify** | Detection + **shape-isolation**: the model sees only shape, synthetic twins and masked aggregates — never the values (real *or* faked) | Messy, unstructured docs (PDF/Excel/DOCX) where you can't enumerate PII up front; strict value isolation; enforcement of *when* to protect |
+| [cloakbox](https://glama.ai/mcp/servers/mbufkin/cloakbox) | Policy-driven **pre-sanitization**: tokenize a database into a de-identified copy the model queries freely | Known, structured schemas where you want rich analytics (joins/aggregations) on a referentially-intact clean copy |
+| [redact-mcp](https://glama.ai/mcp/servers/r3352/redact-mcp) | **Reversible obfuscation** proxy: the model works on consistent fakes; a proxy tool round-trips real API calls | Pentest workflows and **secrets**, where the model must operate on realistic data and you restore reals later |
+| [cms-ai](https://glama.ai/mcp/servers/aammasa/cms-ai-pii-redaction-service) | Enterprise redaction **service**: Presidio + spaCy behind REST/MCP, multi-language, scalable | A hosted, multi-language redaction API with a UI and horizontal scale |
+
+**Where obsify is distinct:** it's the only one of these where the model gets *neither* raw values *nor*
+a full mirror to operate on — just **shape + masked aggregates** — combined with checksum-validated
+identifiers, credential detection, a deterministic **routing guard**, and a hard no-network / no-LLM
+guarantee. That's the strictest-isolation end of the spectrum, tuned for confidential financial documents.
+
+**Honest trade:** obsify optimizes *isolation of the values* over *utility on the data*. If you need
+referentially-intact analytics on a clean copy (cloakbox), reversible round-tripping (redact-mcp), or a
+multi-language hosted service (cms-ai), those are the better fit — and pair well with obsify rather than
+competing with it.
+
 ## Contributing
 
 PRs welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, the merge bar, and the
