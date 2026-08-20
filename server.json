@@ -1,0 +1,27 @@
+{
+  "$schema": "https://static.modelcontextprotocol.io/schemas/2025-12-11/server.schema.json",
+  "name": "io.github.Formative-Sum41/obsify",
+  "title": "obsify",
+  "description": "Local, privacy-preserving PII toolkit over MCP — shape to the model, substance stays local.",
+  "repository": {
+    "url": "https://github.com/Formative-Sum41/obsify",
+    "source": "github"
+  },
+  "version": "0.1.2",
+  "packages": [
+    {
+      "registryType": "pypi",
+      "registryBaseUrl": "https://pypi.org",
+      "identifier": "obsify",
+      "version": "0.1.2",
+      "runtimeHint": "uvx",
+      "transport": {
+        "type": "stdio"
+      },
+      "runtimeArguments": [
+        { "type": "named", "name": "--from", "value": "obsify" },
+        { "type": "positional", "value": "obsify-mcp" }
+      ]
+    }
+  ]
+}

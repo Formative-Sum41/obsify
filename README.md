@@ -5,6 +5,8 @@
 ![Python](https://img.shields.io/badge/python-3.11%2B-blue.svg)
 [![License: MIT](https://img.shields.io/badge/license-MIT-blue.svg)](LICENSE)
 
+<!-- mcp-name: io.github.Formative-Sum41/obsify -->
+
 **Let an AI assistant work on sensitive files without their raw values ever entering the model's context.**
 
 obsify is a local, deterministic [MCP](https://modelcontextprotocol.io) server. The frontier
@@ -89,7 +91,7 @@ Desktop, Claude Code, Cursor, VS Code, …) by adding one block to that client's
 **Recommended — zero-install via [uvx](https://docs.astral.sh/uv/):**
 
 ```json
-{ "mcpServers": { "obsify": { "command": "uvx", "args": ["obsify-mcp"] } } }
+{ "mcpServers": { "obsify": { "command": "uvx", "args": ["--from", "obsify", "obsify-mcp"] } } }
 ```
 
 `uvx` fetches obsify from PyPI and runs it on demand — no permanent install. On **first run**,

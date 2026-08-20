@@ -1,7 +1,7 @@
 # Publishing obsify to PyPI
 
 Publishing is what turns `pip install "git+https://…"` into the copy-paste
-`uvx obsify-mcp` experience. This is the end-to-end checklist. Do it once manually to
+`uvx --from obsify obsify-mcp` experience. This is the end-to-end checklist. Do it once manually to
 understand it, then let the GitHub Actions workflow (bottom) do it on every release.
 
 ## 0. One-time prerequisites
@@ -66,7 +66,7 @@ Authenticate with a **scoped API token** (create at PyPI → Account → API tok
 ## 6. Verify the real thing
 
 - [ ] `pipx install obsify && obsify-mcp` works from a clean machine.
-- [ ] `uvx obsify-mcp` works with **nothing** pre-installed (first run downloads the model).
+- [ ] `uvx --from obsify obsify-mcp` works with **nothing** pre-installed (first run downloads the model).
 - [ ] Add the `uvx` config block to a real client (Claude Desktop / Code), restart, confirm the
       five tools appear and `scan_pii` on a sample file returns shape only.
 

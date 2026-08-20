@@ -3,6 +3,16 @@
 All notable changes to obsify are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
+## [0.1.2] — 2026-08-20
+
+### Added
+- `server.json` + `mcp-name` marker for listing on the official MCP Registry.
+
+### Fixed
+- `uvx` invocation in the docs: the server console script is `obsify-mcp` but the package is
+  `obsify`, so the correct command is `uvx --from obsify obsify-mcp` (the bare `uvx obsify-mcp`
+  would look for a nonexistent `obsify-mcp` package). Client config and checklist updated.
+
 ## [0.1.1] — 2026-08-20
 
 ### Changed
