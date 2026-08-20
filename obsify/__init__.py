@@ -12,7 +12,7 @@ from __future__ import annotations
 import os
 import sys
 
-__version__ = "0.1.0"
+__version__ = "0.1.0"   # single source of truth — pyproject reads this; bump here to release
 
 
 def _bootstrap_windows_runtime() -> None:

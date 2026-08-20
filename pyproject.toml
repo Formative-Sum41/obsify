@@ -4,7 +4,7 @@ build-backend = "hatchling.build"
 
 [project]
 name = "obsify"
-version = "0.1.0"
+dynamic = ["version"]                 # single source of truth: obsify/__init__.py __version__
 description = "Local, privacy-preserving PII toolkit over MCP — the model reasons on shape, deterministic local code touches substance, only masked results return."
 readme = "README.md"
 license = { text = "MIT" }
@@ -51,6 +51,9 @@ obsify-mcp = "obsify.mcp_server:main"  # run the MCP server over stdio
 Homepage = "https://github.com/Formative-Sum41/obsify"
 Documentation = "https://github.com/Formative-Sum41/obsify/blob/main/docs/obsify_routing.md"
 Issues = "https://github.com/Formative-Sum41/obsify/issues"
+
+[tool.hatch.version]
+path = "obsify/__init__.py"            # reads __version__; bump the version there only
 
 [tool.hatch.build.targets.wheel]
 packages = ["obsify"]

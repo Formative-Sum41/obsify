@@ -80,14 +80,22 @@ git push origin v0.1.0
 Create a GitHub Release from the tag (this is also the trigger for the automated workflow below).
 Write release notes; attach nothing (PyPI holds the artifacts).
 
-## 8. Automate: Trusted Publishing (recommended)
+## 8. Automate: Trusted Publishing (recommended, for future releases)
 
 PyPI [Trusted Publishing](https://docs.pypi.org/trusted-publishers/) lets GitHub Actions publish
-with **no API token** (short-lived OIDC credentials). One-time setup on PyPI:
+with **no API token** (short-lived OIDC credentials). Repo side is DONE: `.github/workflows/publish.yml`
+runs on every GitHub Release and the `pypi` GitHub environment exists. The **one-time PyPI step**:
 
-1. PyPI → your project → *Publishing* → add a trusted publisher:
+1. PyPI → your `obsify` project → *Settings* → *Publishing* → **Add a new publisher** (GitHub):
    owner `Formative-Sum41`, repo `obsify`, workflow `publish.yml`, environment `pypi`.
-2. The included `.github/workflows/publish.yml` then publishes on every GitHub Release.
+
+After that, cutting a GitHub Release (§7) publishes automatically — no token.
+
+### Releasing a new version
+1. Bump `__version__` in **`obsify/__init__.py`** (single source; pyproject reads it) and update `CHANGELOG.md`.
+2. Commit + push; ensure CI is green.
+3. `git tag vX.Y.Z && git push origin vX.Y.Z`, then create a **GitHub Release** from that tag.
+   `publish.yml` builds and uploads to PyPI via OIDC. (PyPI versions are immutable — always bump.)
 
 ## 9. Discoverability (post-publish)
 
