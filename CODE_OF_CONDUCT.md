@@ -44,9 +44,8 @@ is officially representing the community in public spaces.
 ## Enforcement
 
 Instances of abusive, harassing, or otherwise unacceptable behavior may be reported to the
-project maintainer by opening a private report on this repository (GitHub → Security → Report
-a vulnerability, which routes privately to the maintainer). All complaints will be reviewed
-and investigated promptly and fairly.
+project maintainer at **Erfan.Harrd@gmail.com** (or by opening a private report on GitHub).
+All complaints will be reviewed and investigated promptly and fairly.
 
 ## Attribution
 
