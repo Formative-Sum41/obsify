@@ -3,7 +3,7 @@
 All notable changes to obsify are documented here. Format follows
 [Keep a Changelog](https://keepachangelog.com/); versions follow [SemVer](https://semver.org/).
 
-## [0.1.0] — unreleased
+## [0.1.0] — 2026-08-20
 
 Initial release. A local, privacy-preserving PII toolkit over MCP: the model reasons on
 **shape** (schemas, synthetic twins, masked feedback) while deterministic local code touches
