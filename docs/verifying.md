@@ -63,6 +63,17 @@ In the inspector: connect → **Tools** tab → you should see `scan_pii`, `reda
 Success = the model uses the tools, values never appear in the transcript, and the guard fires on
 a labelled read. That's the full loop confirmed.
 
+> **Fail-loud: verify the wiring actually loaded — don't assume it.** In-session, run `/mcp`
+> (obsify's tools should be listed) and `/hooks` (the `PreToolUse` Read hook should appear), and
+> confirm a labelled `Read` is actually blocked. If any is missing, the config did **not** load —
+> treat the guard as OFF. **Managed/enterprise Claude Code is the common cause:** policies like
+> `strictPluginOnlyCustomization: ["hooks","mcp"]`, `allowManagedMcpServersOnly`, or
+> `enableAllProjectMcpServers: false` (in a pushed `remote-settings.json`) **silently ignore
+> project `.mcp.json` and project hooks** — they must instead come from managed settings or an
+> approved plugin. In that environment, use the **MCP Inspector** (above) to test the tools — it's
+> a standalone client, not subject to Claude Code's managed policy — and have your admin whitelist
+> the server (`allowedMcpServers`) or ship obsify as a plugin for real in-client use.
+
 ## What is NOT covered (be honest in a demo)
 
 - `run_on_real` output masking is best-effort — see [`SECURITY.md`](../SECURITY.md). Return

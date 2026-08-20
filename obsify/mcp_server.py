@@ -100,9 +100,11 @@ def scan_pii(path: str, max_cells: int = 20000, entities: str | None = None) -> 
     reported as KNOWN_ENTITY. If omitted, a nearby `.obsify.entities` is auto-used.
     The names are read locally and never returned."""
     root = Path(path)
+    notes: list[str] = []
+    if not root.exists():
+        notes.append(f"path not found: {path} (nothing scanned — not the same as 'no PII')")
     files = [root] if root.is_file() else sorted(
         p for p in root.rglob("*") if p.suffix.lower() in _SUFFIXES)
-    notes: list[str] = []
     by_type: Counter = Counter()
     findings: list[dict] = []
     low_coverage: list[dict] = []
@@ -175,12 +177,12 @@ _OUTPUT_CAP = 4000
 @mcp.tool()
 def run_on_real(code: str, data_path: str, timeout: int = 30) -> dict:
     """COMPUTE-TO-DATA: execute your Python `code` LOCALLY against the real file at
-    `data_path` (bound to the variable DATA_PATH in your code), and return only the
-    PII-masked, size-capped output. The data never enters your context; substance
-    never leaves. **Return AGGREGATES (counts/sums/summaries) via print()** — output
-    masking is best-effort defense-in-depth, NOT a guarantee, so never print raw
-    records or identifiers. Network is disabled and a timeout applies. On error you
-    get the exception type and a masked message."""
+    `data_path` (bound to the variable DATA_PATH in your code); the returned `output`
+    is size-capped and **best-effort** PII-masked. The data never enters your context;
+    substance never leaves. **Return AGGREGATES (counts/sums/summaries) via print()** —
+    output masking is defense-in-depth, NOT a guarantee (NER can miss a name in a raw
+    record), so never print raw records or identifiers. The `masking` field carries this
+    caveat with the result. Network is disabled and a timeout applies."""
     from obsify.sandbox import execute
     res = execute(code, data_path, timeout=timeout)
     out = redact_text(res.stdout)[:_OUTPUT_CAP] if res.stdout.strip() else ""
@@ -189,8 +191,9 @@ def run_on_real(code: str, data_path: str, timeout: int = 30) -> dict:
         "ok": res.exit_code == 0 and not res.timed_out,
         "exit_code": res.exit_code,
         "timed_out": res.timed_out,
-        "output_masked": out,           # PII-masked, truncated
-        "error_masked": err,            # PII-masked traceback/message
+        "output": out,      # best-effort PII-masked (see `masking`), truncated
+        "error": err,       # best-effort PII-masked traceback/message
+        "masking": "best-effort — NOT a guarantee; return AGGREGATES, never raw records",
         "truncated": len(res.stdout) > _OUTPUT_CAP or len(res.stderr) > _OUTPUT_CAP,
     }
 

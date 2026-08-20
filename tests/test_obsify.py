@@ -122,14 +122,15 @@ def test_run_on_real_aggregate_and_mask():
         )
         res = S.run_on_real(code, f)
         assert res["ok"] and res["exit_code"] == 0
-        assert "rowcount 3" in res["output_masked"]     # aggregate returns
-        assert "Jane Roe" not in res["output_masked"]   # titlecase name masked
+        assert "rowcount 3" in res["output"]            # aggregate returns
+        assert "Jane Roe" not in res["output"]          # titlecase name masked (best-effort)
+        assert "best-effort" in res["masking"]          # caveat travels with the result
 
 
 def test_run_on_real_blocks_escape_code():
     res = S.run_on_real("import subprocess\nsubprocess.run(['echo','hi'])", "unused")
     assert res["ok"] is False and res["exit_code"] == -2
-    assert "static guard" in res["error_masked"]
+    assert "static guard" in res["error"]
 
 
 def test_run_on_real_timeout():
@@ -140,7 +141,7 @@ def test_run_on_real_timeout():
 def test_run_on_real_error_masked():
     res = S.run_on_real("raise ValueError('boom')", "unused")
     assert res["ok"] is False
-    assert "ValueError" in res["error_masked"]
+    assert "ValueError" in res["error"]
 
 
 if __name__ == "__main__":

@@ -65,8 +65,12 @@ def _profile_column(values: list) -> ColumnProfile:
         return ColumnProfile(header="", kind="id" if monotonic else "number",
                              nulls=nulls, minimum=min(nums), maximum=max(nums),
                              decimals=min(decimals, 4))
-    return ColumnProfile(header="", kind="text", nulls=nulls,
-                         distinct=len({str(v) for v in vals}))
+    strs = [str(v) for v in vals]
+    # semantic text subtype: emails get type-faithful fakes so twin columns are usable
+    # for developing parsing/validation code (its stated purpose), not just shape.
+    if sum(("@" in s and "." in s.rsplit("@", 1)[-1]) for s in strs) >= max(1, len(strs) // 2):
+        return ColumnProfile(header="", kind="email", nulls=nulls)
+    return ColumnProfile(header="", kind="text", nulls=nulls, distinct=len(set(strs)))
 
 
 def _fake(profile: ColumnProfile, i: int, rng: random.Random):
@@ -84,6 +88,8 @@ def _fake(profile: ColumnProfile, i: int, rng: random.Random):
         hi = profile.date_max or datetime(2024, 1, 1)
         span = max((hi - lo).days, 1)
         return lo + timedelta(days=rng.randint(0, span))
+    if k == "email":
+        return f"user{100000 + i}@example.com"
     if k == "text":
         return f"val_{i}_{rng.randint(1, max(profile.distinct, 1))}"
     return None
