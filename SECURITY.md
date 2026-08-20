@@ -63,5 +63,6 @@ processes.
 
 ## Reporting a vulnerability
 
-Open a private security advisory on the repository (or email the maintainer). Please do not
-file public issues for exploitable sandbox escapes until a fix is available.
+Report privately via GitHub: **Security → Report a vulnerability** (private vulnerability
+reporting) on this repository — it routes straight to the maintainer without exposing an email.
+Please do **not** file a public issue for an exploitable sandbox escape until a fix is available.

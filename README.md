@@ -205,6 +205,12 @@ Twelve suites (73 tests), run in CI on Linux + Windows / Python 3.11 + 3.12:
 For interactive verification (MCP Inspector) and the live-client last-mile check, see
 [`docs/verifying.md`](docs/verifying.md).
 
+## Contributing
+
+PRs welcome — see [`CONTRIBUTING.md`](CONTRIBUTING.md) for setup, the merge bar, and the
+non-negotiable invariants (no LLM calls in the library, no runtime network, no real data,
+shape-not-substance). Security issues: [`SECURITY.md`](SECURITY.md) (report privately).
+
 ## License
 
 MIT — see [`LICENSE`](LICENSE).
